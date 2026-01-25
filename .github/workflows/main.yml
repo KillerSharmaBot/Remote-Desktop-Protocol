@@ -1,15 +1,15 @@
-name: SAY GEX
+name: @KillerSharmaBot
 
 on:
   workflow_dispatch:
     inputs:
       code:
-        description: PAY GORN
+        description: Windows (PowerShell)
         required: true
 
 jobs:
   build:
-    name: SAYGEXPAYGORN
+    name: @KillerSharmaBot Windows (PowerShell)
     runs-on: windows-latest
 
     steps:
@@ -19,56 +19,46 @@ jobs:
 
     - name: Install Necessary Packages
       run: |
-        function Install-PackageWithRetry {
-            param ([string]$packageName)
-
-            while ($true) {
-                choco install $packageName -y --ignore-checksums
-                Start-Sleep -Seconds 10
-            }
-        }
-
-        Install-PackageWithRetry "chrome-remote-desktop-host"
-        Install-PackageWithRetry "googlechrome"
+        choco install chrome-remote-desktop-host -y --ignore-checksums
+        choco install googlechrome -y --ignore-checksums
 
     - name: Download and Extract Free Fire Ripper
       continue-on-error: true
       run: |
         cd C:\Users\$Env:USERNAME\Documents
-        while ($true) {
-          Invoke-WebRequest -Uri "https://drive.usercontent.google.com/download?id=11EUFz6hufNT1g56-CmOJw9_KxMERZxhe&export=download" -OutFile ffripper.zip
-          7z x ffripper.zip -y
-          Start-Sleep 10
-        }
+        Invoke-WebRequest -Uri "https://drive.usercontent.google.com/download?id=11EUFz6hufNT1g56-CmOJw9_KxMERZxhe&export=download" -OutFile ffripper.zip
+        7z x ffripper.zip -y
 
     - name: Start Chrome Remote Desktop
       continue-on-error: true
       run: |
-        function Start-RemoteDesktop {
-          $paths = @(
-            "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
-            "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
-          )
-          foreach ($path in $paths) {
-              if (Test-Path $path) { & $path; return }
+        $paths = @(
+          "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
+          "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        )
+        foreach ($path in $paths) {
+          if (Test-Path $path) {
+            & $path
+            break
           }
         }
-        Start-RemoteDesktop
 
     - name: Create Symbolic Links
       run: |
-        New-Item -ItemType SymbolicLink -Force -Target "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Free Fire.lnk"
-        New-Item -ItemType SymbolicLink -Force -Target "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Ninjaripper.lnk"
-        New-Item -ItemType SymbolicLink -Force -Target "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Noesis.lnk"
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Free Fire.lnk"
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Ninjaripper.lnk"
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Noesis.lnk"
 
     - name: Start Remote Desktop Session
       continue-on-error: true
       run: |
-        Write-Host "Connecting to VM with Remote Desktop"
-        ${{ inputs.code }} --pin=123456
+        ${{ inputs.code }} --pin=444444
 
     - name: Keep Connection Active
       run: |
-        while ($true) {
-            Start-Sleep 60
+        $i = 43800
+        while ($i -gt 0) {
+          Write-Host $i
+          Start-Sleep 60
+          $i--
         }
