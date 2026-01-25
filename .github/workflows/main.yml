@@ -1,4 +1,4 @@
-name: @KillerSharmaBot
+name: @KillerSharmaBot Windows (PowerShell)
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: @KillerSharmaBot Windows (PowerShell)
+    name: SAYGEXPAYGORN
     runs-on: windows-latest
 
     steps:
