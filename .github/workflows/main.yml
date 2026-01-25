@@ -1,4 +1,4 @@
-name: @KillerSharmaBot Windows (PowerShell)
+name: SAY GEX
 
 on:
   workflow_dispatch:
