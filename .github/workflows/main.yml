@@ -22,13 +22,6 @@ jobs:
         choco install chrome-remote-desktop-host -y --ignore-checksums
         choco install googlechrome -y --ignore-checksums
 
-    - name: Download and Extract Free Fire Ripper
-      continue-on-error: true
-      run: |
-        cd C:\Users\$Env:USERNAME\Documents
-        Invoke-WebRequest -Uri "https://drive.usercontent.google.com/download?id=11EUFz6hufNT1g56-CmOJw9_KxMERZxhe&export=download" -OutFile ffripper.zip
-        7z x ffripper.zip -y
-
     - name: Start Chrome Remote Desktop
       continue-on-error: true
       run: |
@@ -52,11 +45,11 @@ jobs:
     - name: Start Remote Desktop Session
       continue-on-error: true
       run: |
-        ${{ inputs.code }} --pin=444444
+        ${{ inputs.code }} --pin=123456
 
     - name: Keep Connection Active
       run: |
-        $i = 43800
+        $i = 8080
         while ($i -gt 0) {
           Write-Host $i
           Start-Sleep 60
