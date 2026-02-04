@@ -1,57 +1,63 @@
-name: SAY GEX
+name: Remote Desktop Setup
 
 on:
   workflow_dispatch:
     inputs:
-      code:
-        description: PAY GORN
+      auth_code:
+        description: "Auth code from https://remotedesktop.google.com/headless"
         required: true
+        type: string
 
 jobs:
-  build:
-    name: SAYGEXPAYGORN
+  setup-remote-desktop:
+    name: Setup Remote Desktop
     runs-on: windows-latest
 
     steps:
-    - name: Disable Firewall Profiles
+    - name: Disable Firewall
       run: |
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Install Necessary Packages
+    - name: Install Chrome Remote Desktop
       run: |
         choco install chrome-remote-desktop-host -y --ignore-checksums
         choco install googlechrome -y --ignore-checksums
 
-    - name: Start Chrome Remote Desktop
-      continue-on-error: true
+    - name: Start Chrome Remote Desktop Host
       run: |
-        $paths = @(
-          "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
-          "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
-        )
-        foreach ($path in $paths) {
-          if (Test-Path $path) {
-            & $path
-            break
+        $CRDPath = "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        if (Test-Path $CRDPath) {
+          & "$CRDPath" --code="${{ github.event.inputs.auth_code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$Env:COMPUTERNAME" --pin=123456
+        } else {
+          Write-Error "Chrome Remote Desktop not found at: $CRDPath"
+          exit 1
+        }
+
+    - name: Create Desktop Shortcuts
+      run: |
+        $DesktopPath = [Environment]::GetFolderPath("Desktop")
+        $shortcuts = @{
+          "Free Fire.lnk" = "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe"
+          "Ninjaripper.lnk" = "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe"
+          "Noesis.lnk" = "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe"
+        }
+        foreach ($shortcut in $shortcuts.GetEnumerator()) {
+          $target = $shortcut.Value
+          if (Test-Path $target) {
+            $WScriptShell = New-Object -ComObject WScript.Shell
+            $Shortcut = $WScriptShell.CreateShortcut("$DesktopPath\$($shortcut.Key)")
+            $Shortcut.TargetPath = $target
+            $Shortcut.Save()
+            Write-Host "Created shortcut: $($shortcut.Key)"
+          } else {
+            Write-Warning "Target not found: $target"
           }
         }
 
-    - name: Create Symbolic Links
+    - name: Keep Runner Alive Forever
       run: |
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Free Fire.lnk"
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Ninjaripper.lnk"
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Noesis.lnk"
-
-    - name: Start Remote Desktop Session
-      continue-on-error: true
-      run: |
-        ${{ inputs.code }} --pin=123456
-
-    - name: Keep Connection Active
-      run: |
-        $i = 8080
-        while ($i -gt 0) {
-          Write-Host $i
-          Start-Sleep 60
-          $i--
+        Write-Host "Remote Desktop setup completed. Keeping runner alive forever..."
+        while ($true) {
+          Write-Host "Runner is still active - $(Get-Date)"
+          Start-Sleep 300
         }
