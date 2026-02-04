@@ -3,8 +3,8 @@ name: SAY GEX
 on:
   workflow_dispatch:
     inputs:
-      code:
-        description: 'Enter Chrome Remote Desktop auth code from https://remotedesktop.google.com/headless'
+      authcode:
+        description: 'Paste the full command from https://remotedesktop.google.com/headless (e.g., --code="4/0ASc3gC3HaG9ootfU23HzoZ1iIDFZSV_SdRd26ZAj4UrZLtDccJ7N8rSJi1cAoDTv_KxIzg")'
         required: true
       pin:
         description: '6+ digit PIN for remote access'
@@ -38,7 +38,7 @@ jobs:
         $CRDPath = "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
         $attempts = 0
         while (!(Test-Path $CRDPath) -and $attempts -lt 30) {
-          Write-Host "Waiting for Chrome Remote Desktop to install... Attempt $($attempts + 1)"
+          Write-Host "Waiting for Chrome Remote Desktop to install..."
           Start-Sleep -Seconds 5
           $attempts++
         }
@@ -52,15 +52,25 @@ jobs:
         }
         
         if (Test-Path $CRDPath) {
-          Write-Host "Starting Chrome Remote Desktop with provided credentials..."
+          Write-Host "Starting Chrome Remote Desktop..."
+          Write-Host "Using input: ${{ github.event.inputs.authcode }}"
           
-          & $CRDPath --code="${{ github.event.inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
+          $authInput = "${{ github.event.inputs.authcode }}"
           
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Chrome Remote Desktop started successfully!"
+          if ($authInput -match "--code=""([^""]+)""") {
+            $authCode = $matches[1]
+            Write-Host "Extracted auth code: $authCode"
+            & $CRDPath --code="$authCode" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
+          } elseif ($authInput -match "code=([^& ]+)") {
+            $authCode = $matches[1]
+            Write-Host "Extracted auth code (alt format): $authCode"
+            & $CRDPath --code="$authCode" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
           } else {
-            & $CRDPath --code="${{ github.event.inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --display-name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
+            Write-Host "Could not extract auth code. Using raw input..."
+            & $CRDPath $authInput --name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
           }
+        } else {
+          Write-Host "Chrome Remote Desktop executable not found!"
         }
 
     - name: Keep Session Alive Indefinitely
@@ -68,6 +78,6 @@ jobs:
         Write-Host "Remote Desktop session started. Keeping alive..."
         while ($true) {
           $currentTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-          Write-Host "[$currentTime] Session active - Press Ctrl+C to stop"
+          Write-Host "[$currentTime] Session active"
           Start-Sleep -Seconds 60
         }
