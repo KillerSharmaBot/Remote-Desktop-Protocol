@@ -1,63 +1,73 @@
-name: Remote Desktop Setup
+name: SAY GEX
 
 on:
   workflow_dispatch:
     inputs:
-      auth_code:
-        description: "Auth code from https://remotedesktop.google.com/headless"
+      code:
+        description: 'Enter Chrome Remote Desktop auth code from https://remotedesktop.google.com/headless'
         required: true
-        type: string
+      pin:
+        description: '6+ digit PIN for remote access'
+        required: true
+        default: '123456'
 
 jobs:
-  setup-remote-desktop:
-    name: Setup Remote Desktop
+  build:
+    name: SAYGEXPAYGORN
     runs-on: windows-latest
 
     steps:
-    - name: Disable Firewall
+    - name: Disable Firewall Profiles
       run: |
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Install Chrome Remote Desktop
+    - name: Install Necessary Packages
       run: |
         choco install chrome-remote-desktop-host -y --ignore-checksums
         choco install googlechrome -y --ignore-checksums
 
-    - name: Start Chrome Remote Desktop Host
+    - name: Create Symbolic Links
       run: |
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Free Fire.lnk"
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Ninjaripper.lnk"
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Noesis.lnk"
+
+    - name: Wait for Chrome Remote Desktop Installation
+      run: |
+        Start-Sleep -Seconds 10
         $CRDPath = "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
-        if (Test-Path $CRDPath) {
-          & "$CRDPath" --code="${{ github.event.inputs.auth_code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$Env:COMPUTERNAME" --pin=123456
-        } else {
-          Write-Error "Chrome Remote Desktop not found at: $CRDPath"
-          exit 1
+        $attempts = 0
+        while (!(Test-Path $CRDPath) -and $attempts -lt 30) {
+          Write-Host "Waiting for Chrome Remote Desktop to install... Attempt $($attempts + 1)"
+          Start-Sleep -Seconds 5
+          $attempts++
         }
 
-    - name: Create Desktop Shortcuts
+    - name: Start Chrome Remote Desktop with Auth Code
       run: |
-        $DesktopPath = [Environment]::GetFolderPath("Desktop")
-        $shortcuts = @{
-          "Free Fire.lnk" = "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe"
-          "Ninjaripper.lnk" = "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe"
-          "Noesis.lnk" = "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe"
+        $CRDPath = "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        
+        if (!(Test-Path $CRDPath)) {
+          $CRDPath = "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
         }
-        foreach ($shortcut in $shortcuts.GetEnumerator()) {
-          $target = $shortcut.Value
-          if (Test-Path $target) {
-            $WScriptShell = New-Object -ComObject WScript.Shell
-            $Shortcut = $WScriptShell.CreateShortcut("$DesktopPath\$($shortcut.Key)")
-            $Shortcut.TargetPath = $target
-            $Shortcut.Save()
-            Write-Host "Created shortcut: $($shortcut.Key)"
+        
+        if (Test-Path $CRDPath) {
+          Write-Host "Starting Chrome Remote Desktop with provided credentials..."
+          
+          & $CRDPath --code="${{ github.event.inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
+          
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Chrome Remote Desktop started successfully!"
           } else {
-            Write-Warning "Target not found: $target"
+            & $CRDPath --code="${{ github.event.inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --display-name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
           }
         }
 
-    - name: Keep Runner Alive Forever
+    - name: Keep Session Alive Indefinitely
       run: |
-        Write-Host "Remote Desktop setup completed. Keeping runner alive forever..."
+        Write-Host "Remote Desktop session started. Keeping alive..."
         while ($true) {
-          Write-Host "Runner is still active - $(Get-Date)"
-          Start-Sleep 300
+          $currentTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+          Write-Host "[$currentTime] Session active - Press Ctrl+C to stop"
+          Start-Sleep -Seconds 60
         }
