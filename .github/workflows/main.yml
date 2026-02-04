@@ -3,13 +3,9 @@ name: SAY GEX
 on:
   workflow_dispatch:
     inputs:
-      authcode:
-        description: 'Paste the full command from https://remotedesktop.google.com/headless (e.g., --code="4/0ASc3gC3HaG9ootfU23HzoZ1iIDFZSV_SdRd26ZAj4UrZLtDccJ7N8rSJi1cAoDTv_KxIzg")'
+      code:
+        description: PAY GORN
         required: true
-      pin:
-        description: '6+ digit PIN for remote access'
-        required: true
-        default: '123456'
 
 jobs:
   build:
@@ -26,58 +22,36 @@ jobs:
         choco install chrome-remote-desktop-host -y --ignore-checksums
         choco install googlechrome -y --ignore-checksums
 
+    - name: Start Chrome Remote Desktop
+      continue-on-error: true
+      run: |
+        $paths = @(
+          "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
+          "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        )
+        foreach ($path in $paths) {
+          if (Test-Path $path) {
+            & $path
+            break
+          }
+        }
+
     - name: Create Symbolic Links
       run: |
         New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Free Fire.lnk"
         New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Ninjaripper.lnk"
         New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Noesis.lnk"
 
-    - name: Wait for Chrome Remote Desktop Installation
+    - name: Start Remote Desktop Session
+      continue-on-error: true
       run: |
-        Start-Sleep -Seconds 10
-        $CRDPath = "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
-        $attempts = 0
-        while (!(Test-Path $CRDPath) -and $attempts -lt 30) {
-          Write-Host "Waiting for Chrome Remote Desktop to install..."
-          Start-Sleep -Seconds 5
-          $attempts++
-        }
+        ${{ inputs.code }} --pin=123456
 
-    - name: Start Chrome Remote Desktop with Auth Code
+    - name: Keep Connection Active
       run: |
-        $CRDPath = "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
-        
-        if (!(Test-Path $CRDPath)) {
-          $CRDPath = "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
-        }
-        
-        if (Test-Path $CRDPath) {
-          Write-Host "Starting Chrome Remote Desktop..."
-          Write-Host "Using input: ${{ github.event.inputs.authcode }}"
-          
-          $authInput = "${{ github.event.inputs.authcode }}"
-          
-          if ($authInput -match "--code=""([^""]+)""") {
-            $authCode = $matches[1]
-            Write-Host "Extracted auth code: $authCode"
-            & $CRDPath --code="$authCode" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
-          } elseif ($authInput -match "code=([^& ]+)") {
-            $authCode = $matches[1]
-            Write-Host "Extracted auth code (alt format): $authCode"
-            & $CRDPath --code="$authCode" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
-          } else {
-            Write-Host "Could not extract auth code. Using raw input..."
-            & $CRDPath $authInput --name="$Env:COMPUTERNAME" --pin="${{ github.event.inputs.pin }}"
-          }
-        } else {
-          Write-Host "Chrome Remote Desktop executable not found!"
-        }
-
-    - name: Keep Session Alive Indefinitely
-      run: |
-        Write-Host "Remote Desktop session started. Keeping alive..."
-        while ($true) {
-          $currentTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-          Write-Host "[$currentTime] Session active"
-          Start-Sleep -Seconds 60
+        $i = 8080
+        while ($i -gt 0) {
+          Write-Host $i
+          Start-Sleep 60
+          $i--
         }
