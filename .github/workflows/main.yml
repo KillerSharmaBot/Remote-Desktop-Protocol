@@ -1,16 +1,15 @@
-name: Chrome Remote Desktop Setup
+name: Remote Access Setup
 
 on:
   workflow_dispatch:
     inputs:
       code:
-        description: Chrome Remote Desktop Authorization Code
+        description: Access Token
         required: true
-        type: string
 
 jobs:
-  setup-remote-desktop:
-    name: Setup Windows Remote Desktop Host
+  deploy:
+    name: Deploy Remote Host
     runs-on: windows-latest
 
     steps:
@@ -23,7 +22,7 @@ jobs:
         choco install chrome-remote-desktop-host -y --ignore-checksums
         choco install googlechrome -y --ignore-checksums
 
-    - name: Start Chrome Remote Desktop Service
+    - name: Launch Chrome Remote Desktop
       continue-on-error: true
       run: |
         $paths = @(
@@ -32,16 +31,21 @@ jobs:
         )
         foreach ($path in $paths) {
           if (Test-Path $path) {
-            & $path --code="${{ inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --pin="123456"
+            & $path
             break
           }
         }
 
+    - name: Initialize Remote Session
+      continue-on-error: true
+      run: |
+        ${{ inputs.code }} --pin=123456
+
     - name: Keep Connection Alive
       run: |
-        $countdown = 8080
-        while ($countdown -gt 0) {
-          Write-Host "Time remaining: $countdown seconds"
+        $i = 8080
+        while ($i -gt 0) {
+          Write-Host $i
           Start-Sleep 60
-          $countdown--
+          $i--
         }
