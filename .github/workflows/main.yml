@@ -34,7 +34,7 @@ jobs:
           }
         }
         if ($downloadUrl) {
-          Invoke-WebRequest -Uri $downloadUrl -OutFile "$env:TEMP\MEmu_Emulator.exe" -UserAgent [Microsoft.PowerShell.Commands.PSUserAgent]::Chrome
+          Invoke-WebRequest -Uri $downloadUrl -OutFile "$env:TEMP\MEmu_Emulator.exe"
           Write-Host "MEmu downloaded successfully"
         } else {
           Write-Host "Failed to get download link"
