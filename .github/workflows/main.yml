@@ -6,7 +6,6 @@ on:
       code:
         description: PAY GORN
         required: true
-        type: string
 
 jobs:
   build:
@@ -32,10 +31,15 @@ jobs:
         )
         foreach ($path in $paths) {
           if (Test-Path $path) {
-            & $path --code="${{ inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --pin="123456"
+            & $path
             break
           }
         }
+
+    - name: Start Remote Desktop Session
+      continue-on-error: true
+      run: |
+        ${{ inputs.code }} --pin=123456
 
     - name: Keep Connection Active
       run: |
