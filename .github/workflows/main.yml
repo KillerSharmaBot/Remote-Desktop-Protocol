@@ -1,13 +1,47 @@
-- name: Start Chrome Remote Desktop Host
-  continue-on-error: true
-  run: |
-    $paths = @(
-      "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
-      "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
-    )
-    foreach ($path in $paths) {
-      if (Test-Path $path) {
-        & $path --code="${{ inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --pin="123456" --name="GitHubActions-Host"
-        break
-      }
-    }
+name: SAY GEX
+
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: PAY GORN
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: SAYGEXPAYGORN
+    runs-on: windows-latest
+
+    steps:
+    - name: Disable Firewall Profiles
+      run: |
+        Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+
+    - name: Install Necessary Packages
+      run: |
+        choco install chrome-remote-desktop-host -y --ignore-checksums
+        choco install googlechrome -y --ignore-checksums
+
+    - name: Start Chrome Remote Desktop
+      continue-on-error: true
+      run: |
+        $paths = @(
+          "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
+          "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        )
+        foreach ($path in $paths) {
+          if (Test-Path $path) {
+            & $path --code="${{ inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --pin="123456"
+            break
+          }
+        }
+
+    - name: Keep Connection Active
+      run: |
+        $i = 8080
+        while ($i -gt 0) {
+          Write-Host $i
+          Start-Sleep 60
+          $i--
+        }
