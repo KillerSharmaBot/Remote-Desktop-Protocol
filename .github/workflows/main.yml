@@ -22,16 +22,28 @@ jobs:
         choco install chrome-remote-desktop-host -y --ignore-checksums
         choco install googlechrome -y --ignore-checksums
 
-    - name: Download MEmu
+    - name: Download MEmu from MediaFire
       run: |
-        $memu_url = "https://www.memuplay.com/download/MEmu-Setup.exe"
-        $output = "$env:TEMP\MEmu-Setup.exe"
-        Invoke-WebRequest -Uri $memu_url -OutFile $output
-        Write-Host "MEmu downloaded to: $output"
+        $url = "https://www.mediafire.com/file/1y09ydbfi281fef/MEmu_Emulator.exe/file"
+        $response = Invoke-WebRequest -Uri $url -UseBasicParsing
+        $downloadUrl = ($response.Links | Where-Object { $_.href -like "*.mediafire.com/download/*" }).href | Select-Object -First 1
+        if (-not $downloadUrl) {
+          $content = $response.Content
+          if ($content -match 'https?://download\d+\.mediafire\.com/[^"\s]+') {
+            $downloadUrl = $matches[0]
+          }
+        }
+        if ($downloadUrl) {
+          Invoke-WebRequest -Uri $downloadUrl -OutFile "$env:TEMP\MEmu_Emulator.exe" -UserAgent [Microsoft.PowerShell.Commands.PSUserAgent]::Chrome
+          Write-Host "MEmu downloaded successfully"
+        } else {
+          Write-Host "Failed to get download link"
+          exit 1
+        }
 
     - name: Install MEmu (Silent)
       run: |
-        $installer = "$env:TEMP\MEmu-Setup.exe"
+        $installer = "$env:TEMP\MEmu_Emulator.exe"
         if (Test-Path $installer) {
           Start-Process -FilePath $installer -ArgumentList "/S" -Wait
           Write-Host "MEmu installation completed"
