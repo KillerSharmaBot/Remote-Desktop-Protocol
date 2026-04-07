@@ -1,57 +1,29 @@
-name: SAY GEX
+name: Chrome Remote Desktop Setup
 
 on:
   workflow_dispatch:
     inputs:
       code:
-        description: PAY GORN
+        description: Chrome Remote Desktop Authorization Code
         required: true
+        type: string
 
 jobs:
-  build:
-    name: SAYGEXPAYGORN
+  setup-remote-desktop:
+    name: Setup Windows Remote Desktop Host
     runs-on: windows-latest
 
     steps:
-    - name: Disable Firewall Profiles
+    - name: Disable Windows Firewall
       run: |
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Install Necessary Packages
+    - name: Install Required Software
       run: |
         choco install chrome-remote-desktop-host -y --ignore-checksums
         choco install googlechrome -y --ignore-checksums
 
-    - name: Download MEmu from MediaFire
-      run: |
-        $url = "https://www.mediafire.com/file/1y09ydbfi281fef/MEmu_Emulator.exe/file"
-        $response = Invoke-WebRequest -Uri $url -UseBasicParsing
-        $downloadUrl = ($response.Links | Where-Object { $_.href -like "*.mediafire.com/download/*" }).href | Select-Object -First 1
-        if (-not $downloadUrl) {
-          $content = $response.Content
-          if ($content -match 'https?://download\d+\.mediafire\.com/[^"\s]+') {
-            $downloadUrl = $matches[0]
-          }
-        }
-        if ($downloadUrl) {
-          Invoke-WebRequest -Uri $downloadUrl -OutFile "$env:TEMP\MEmu_Emulator.exe"
-          Write-Host "MEmu downloaded successfully"
-        } else {
-          Write-Host "Failed to get download link"
-          exit 1
-        }
-
-    - name: Install MEmu (Silent)
-      run: |
-        $installer = "$env:TEMP\MEmu_Emulator.exe"
-        if (Test-Path $installer) {
-          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
-          Write-Host "MEmu installation completed"
-        } else {
-          Write-Host "MEmu installer not found"
-        }
-
-    - name: Start Chrome Remote Desktop
+    - name: Start Chrome Remote Desktop Service
       continue-on-error: true
       run: |
         $paths = @(
@@ -60,21 +32,16 @@ jobs:
         )
         foreach ($path in $paths) {
           if (Test-Path $path) {
-            & $path
+            & $path --code="${{ inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --pin="123456"
             break
           }
         }
 
-    - name: Start Remote Desktop Session
-      continue-on-error: true
+    - name: Keep Connection Alive
       run: |
-        ${{ inputs.code }} --pin=123456
-
-    - name: Keep Connection Active
-      run: |
-        $i = 8080
-        while ($i -gt 0) {
-          Write-Host $i
+        $countdown = 8080
+        while ($countdown -gt 0) {
+          Write-Host "Time remaining: $countdown seconds"
           Start-Sleep 60
-          $i--
+          $countdown--
         }
