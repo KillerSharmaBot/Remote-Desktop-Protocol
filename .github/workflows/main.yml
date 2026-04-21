@@ -1,27 +1,57 @@
-name: Window 10
+name: SAY GEX
 
-on: [push, workflow_dispatch]
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: PAY GORN
+        required: true
 
 jobs:
   build:
-
+    name: SAYGEXPAYGORN
     runs-on: windows-latest
-    timeout-minutes: 9999
-
 
     steps:
-    - name: Download
-      run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-    - name: Extract
-      run: Expand-Archive ngrok.zip
-    - name: Auth
-      run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
-      env:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-    - name: Enable TS
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
-    - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-    - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-    - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "@cyb3rking" -Force)
-    - name: Create Tunnel
-      run: .\ngrok\ngrok.exe tcp 3389
+    - name: Disable Firewall Profiles
+      run: |
+        Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+
+    - name: Install Necessary Packages
+      run: |
+        choco install chrome-remote-desktop-host -y --ignore-checksums
+        choco install googlechrome -y --ignore-checksums
+
+    - name: Start Chrome Remote Desktop
+      continue-on-error: true
+      run: |
+        $paths = @(
+          "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
+          "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        )
+        foreach ($path in $paths) {
+          if (Test-Path $path) {
+            & $path
+            break
+          }
+        }
+
+    - name: Create Symbolic Links
+      run: |
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Free Fire.lnk"
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Ninjaripper.lnk"
+        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Noesis.lnk"
+
+    - name: Start Remote Desktop Session
+      continue-on-error: true
+      run: |
+        ${{ inputs.code }} --pin=123456
+
+    - name: Keep Connection Active
+      run: |
+        $i = 8080
+        while ($i -gt 0) {
+          Write-Host $i
+          Start-Sleep 60
+          $i--
+        }
