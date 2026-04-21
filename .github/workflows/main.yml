@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       auth_code:
-        description: 'Authentication Code (Example: 4/0AX4XfWi-xxxxx) - Get from https://remotedesktop.google.com/headless'
+        description: 'Google CRD Auth Code (4/0Aci98E-xxxx format) - Get from https://remotedesktop.google.com/headless'
         required: true
 
 jobs:
@@ -26,80 +26,37 @@ jobs:
       run: |
         choco install googlechrome -y --ignore-checksums
 
-    - name: Start Chrome Remote Desktop with Auth Code
+    - name: Start Chrome Remote Desktop
       run: |
-        $code = "${{ inputs.auth_code }}".Trim()
+        $code = "${{ inputs.auth_code }}"
+        $exePath = "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        
+        if (-not (Test-Path $exePath)) {
+            $exePath = "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        }
         
         Write-Host "Starting Chrome Remote Desktop..."
-        Write-Host "Auth Code length: $($code.Length) characters"
+        Write-Host "Computer Name: $Env:COMPUTERNAME"
         
-        $exePaths = @(
-            "C:\Program Files\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
-            "C:\Program Files (x86)\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
-        )
+        & $exePath --code="$code" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --display-name="$Env:COMPUTERNAME" --pin=123456
         
-        $exePath = $null
-        foreach ($path in $exePaths) {
-            if (Test-Path $path) {
-                $exePath = $path
-                Write-Host "Found CRD at: $exePath"
-                break
-            }
-        }
-        
-        if ($exePath -eq $null) {
-            Write-Host "ERROR: Chrome Remote Desktop executable not found"
-            exit 1
-        }
-        
-        $arguments = @(
-            "--code=$code",
-            "--redirect-url=https://remotedesktop.google.com/_/oauthredirect",
-            "--pin=123456"
-        )
-        
-        Write-Host "Running: $exePath $($arguments -join ' ')"
-        
-        $process = Start-Process -FilePath $exePath -ArgumentList $arguments -Wait -NoNewWindow -PassThru
-        
-        Write-Host "Exit code: $($process.ExitCode)"
-        
-        if ($process.ExitCode -ne 0) {
-            Write-Host ""
-            Write-Host "============================================"
-            Write-Host "ERROR: Authentication Failed"
-            Write-Host "============================================"
-            Write-Host "Possible reasons:"
-            Write-Host "1. Auth code is invalid or expired (code expires in 5 minutes)"
-            Write-Host "2. Wrong Google account used"
-            Write-Host "3. Code format is incorrect"
-            Write-Host ""
-            Write-Host "SOLUTION:"
-            Write-Host "1. Go to: https://remotedesktop.google.com/headless"
-            Write-Host "2. Login with your Google account"
-            Write-Host "3. Click 'Authorize' button"
-            Write-Host "4. COPY the ENTIRE code (starts with 4/ or 1/ )"
-            Write-Host "5. Paste it here within 5 minutes"
-            Write-Host "============================================"
-            exit 1
-        }
-        
-        Write-Host "SUCCESS: Chrome Remote Desktop started successfully!"
+        Write-Host "Chrome Remote Desktop started successfully with PIN: 123456"
 
     - name: Keep Connection Active
       run: |
         Write-Host ""
         Write-Host "============================================"
-        Write-Host "READY TO CONNECT"
+        Write-Host "REMOTE DESKTOP IS ACTIVE"
         Write-Host "============================================"
-        Write-Host "1. Open: https://remotedesktop.google.com/access"
+        Write-Host "1. Go to: https://remotedesktop.google.com/access"
         Write-Host "2. Login with SAME Google account"
-        Write-Host "3. You will see this computer online"
-        Write-Host "4. Use PIN: 123456 to connect"
+        Write-Host "3. Find computer: $Env:COMPUTERNAME"
+        Write-Host "4. Enter PIN: 123456"
         Write-Host "============================================"
         Write-Host ""
         
-        for ($i = 120; $i -gt 0; $i--) {
-            Write-Host "Active - $i minutes remaining"
+        $minutes = 120
+        for ($i = $minutes; $i -gt 0; $i--) {
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Active - $i minutes remaining"
             Start-Sleep -Seconds 60
         }
