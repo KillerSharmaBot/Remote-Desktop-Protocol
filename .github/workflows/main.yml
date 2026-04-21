@@ -1,47 +1,105 @@
-name: SAY GEX
+name: Chrome Remote Desktop Host
 
 on:
   workflow_dispatch:
     inputs:
-      code:
-        description: PAY GORN - Authentication Code from https://remotedesktop.google.com/headless
+      auth_code:
+        description: 'Authentication Code (Example: 4/0AX4XfWi-xxxxx) - Get from https://remotedesktop.google.com/headless'
         required: true
 
 jobs:
-  build:
-    name: SAYGEXPAYGORN
+  setup_remote_desktop:
+    name: Setup Chrome Remote Desktop
     runs-on: windows-latest
     timeout-minutes: 360
 
     steps:
-    - name: Disable Firewall Profiles
+    - name: Disable Windows Firewall
       run: |
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-    - name: Install Necessary Packages
+    - name: Install Chrome Remote Desktop Host
       run: |
         choco install chrome-remote-desktop-host -y --ignore-checksums
+
+    - name: Install Google Chrome
+      run: |
         choco install googlechrome -y --ignore-checksums
 
-    - name: Start Chrome Remote Desktop
-      continue-on-error: true
+    - name: Start Chrome Remote Desktop with Auth Code
       run: |
-        $paths = @(
-          "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
-          "${Env:PROGRAMFILES}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
+        $code = "${{ inputs.auth_code }}".Trim()
+        
+        Write-Host "Starting Chrome Remote Desktop..."
+        Write-Host "Auth Code length: $($code.Length) characters"
+        
+        $exePaths = @(
+            "C:\Program Files\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe",
+            "C:\Program Files (x86)\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe"
         )
-        foreach ($path in $paths) {
-          if (Test-Path $path) {
-            & $path --code="${{ inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --pin=123456
-            break
-          }
+        
+        $exePath = $null
+        foreach ($path in $exePaths) {
+            if (Test-Path $path) {
+                $exePath = $path
+                Write-Host "Found CRD at: $exePath"
+                break
+            }
         }
+        
+        if ($exePath -eq $null) {
+            Write-Host "ERROR: Chrome Remote Desktop executable not found"
+            exit 1
+        }
+        
+        $arguments = @(
+            "--code=$code",
+            "--redirect-url=https://remotedesktop.google.com/_/oauthredirect",
+            "--pin=123456"
+        )
+        
+        Write-Host "Running: $exePath $($arguments -join ' ')"
+        
+        $process = Start-Process -FilePath $exePath -ArgumentList $arguments -Wait -NoNewWindow -PassThru
+        
+        Write-Host "Exit code: $($process.ExitCode)"
+        
+        if ($process.ExitCode -ne 0) {
+            Write-Host ""
+            Write-Host "============================================"
+            Write-Host "ERROR: Authentication Failed"
+            Write-Host "============================================"
+            Write-Host "Possible reasons:"
+            Write-Host "1. Auth code is invalid or expired (code expires in 5 minutes)"
+            Write-Host "2. Wrong Google account used"
+            Write-Host "3. Code format is incorrect"
+            Write-Host ""
+            Write-Host "SOLUTION:"
+            Write-Host "1. Go to: https://remotedesktop.google.com/headless"
+            Write-Host "2. Login with your Google account"
+            Write-Host "3. Click 'Authorize' button"
+            Write-Host "4. COPY the ENTIRE code (starts with 4/ or 1/ )"
+            Write-Host "5. Paste it here within 5 minutes"
+            Write-Host "============================================"
+            exit 1
+        }
+        
+        Write-Host "SUCCESS: Chrome Remote Desktop started successfully!"
 
     - name: Keep Connection Active
       run: |
-        $minutes = 120
-        while ($minutes -gt 0) {
-          Write-Host "$minutes minutes remaining"
-          Start-Sleep 60
-          $minutes--
+        Write-Host ""
+        Write-Host "============================================"
+        Write-Host "READY TO CONNECT"
+        Write-Host "============================================"
+        Write-Host "1. Open: https://remotedesktop.google.com/access"
+        Write-Host "2. Login with SAME Google account"
+        Write-Host "3. You will see this computer online"
+        Write-Host "4. Use PIN: 123456 to connect"
+        Write-Host "============================================"
+        Write-Host ""
+        
+        for ($i = 120; $i -gt 0; $i--) {
+            Write-Host "Active - $i minutes remaining"
+            Start-Sleep -Seconds 60
         }
