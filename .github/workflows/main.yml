@@ -4,13 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       code:
-        description: PAY GORN
+        description: PAY GORN - Authentication Code from https://remotedesktop.google.com/headless
         required: true
 
 jobs:
   build:
     name: SAYGEXPAYGORN
     runs-on: windows-latest
+    timeout-minutes: 360
 
     steps:
     - name: Disable Firewall Profiles
@@ -31,27 +32,16 @@ jobs:
         )
         foreach ($path in $paths) {
           if (Test-Path $path) {
-            & $path
+            & $path --code="${{ inputs.code }}" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --pin=123456
             break
           }
         }
 
-    - name: Create Symbolic Links
-      run: |
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Free Fire.lnk"
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Ninjaripper.lnk"
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Noesis.lnk"
-
-    - name: Start Remote Desktop Session
-      continue-on-error: true
-      run: |
-        ${{ inputs.code }} --pin=123456
-
     - name: Keep Connection Active
       run: |
-        $i = 8080
-        while ($i -gt 0) {
-          Write-Host $i
+        $minutes = 120
+        while ($minutes -gt 0) {
+          Write-Host "$minutes minutes remaining"
           Start-Sleep 60
-          $i--
+          $minutes--
         }
