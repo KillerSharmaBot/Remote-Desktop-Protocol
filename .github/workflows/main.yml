@@ -36,12 +36,6 @@ jobs:
           }
         }
 
-    - name: Create Symbolic Links
-      run: |
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\FenixGaga\Engine\ProjectTitan.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Free Fire.lnk"
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\ninjaripper\x86\NinjaRipper.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Ninjaripper.lnk"
-        New-Item -ItemType SymbolicLink -Target "C:\Users\$Env:USERNAME\Documents\noesis\Noesis64.exe" -Path "C:\Users\$Env:USERNAME\Desktop\Noesis.lnk"
-
     - name: Start Remote Desktop Session
       continue-on-error: true
       run: |
@@ -49,7 +43,7 @@ jobs:
 
     - name: Keep Connection Active
       run: |
-        $i = 8080
+        $i = 999999
         while ($i -gt 0) {
           Write-Host $i
           Start-Sleep 60
